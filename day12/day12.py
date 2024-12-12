@@ -4,7 +4,7 @@ from day12_part1 import solution as part1
 from day12_part2 import solution as part2
 
 if __name__ == '__main__':
-    input_lines = read_file_lines('example2.in')
+    input_lines = read_file_lines('solution.in')
 
     start = timer()
     answer1 = part1(input_lines)

@@ -1,5 +1,6 @@
 import re
-from collections import deque
+from collections import deque, defaultdict
+from itertools import combinations
 from typing import List
 
 
@@ -41,109 +42,144 @@ def find_regions(mymap):
 
     return ranges
 
+
+class Area:
+    def __init__(self):
+        self.left = True
+        self.right = True
+        self.up = True
+        self.down = True
+
 def solution(input_lines : List[str]):
     regions = find_regions(input_lines)
 
     def count_sides(single_region):
         visited = set()
-        up_sides = set()
-        down_sides = set()
-        left_sides = set()
-        right_sides = set()
+        areas = {}
+
         for point in single_region:
             visited.add(point)
             row, col = point
 
+            areas[point] = Area()
+
             #up (-1, 0)
             a_point = (row -1, col)
-            if is_in_map(a_point, len(input_lines)):
-                if a_point not in visited:
-                    up_sides.add(point)
-                a_point = (row + 1, col)
-                if is_in_map(a_point, len(input_lines)):
-                    if a_point in visited:
-                        up_sides.discard(a_point)
-            else:
-                up_sides.add(point)
+            if a_point in visited:
+                areas[point].up = False
+                areas[a_point].down = False
 
             # right (0, 1)
             a_point = (row, col + 1)
-            if is_in_map(a_point, len(input_lines)):
-                if a_point not in visited:
-                    right_sides.add(point)
-                a_point = (row, col - 1)
-                if is_in_map(a_point, len(input_lines)):
-                    if a_point in visited:
-                        right_sides.discard(a_point)
-            else:
-                right_sides.add(point)
+            if a_point in visited:
+                areas[point].right = False
+                areas[a_point].left = False
 
             # down (1, 0)
             a_point = (row + 1, col)
-            if is_in_map(a_point, len(input_lines)):
-                if a_point not in visited:
-                    down_sides.add(point)
-                a_point = (row - 1, col)
-                if is_in_map(a_point, len(input_lines)):
-                    if a_point in visited:
-                        down_sides.discard(a_point)
-            else:
-                down_sides.add(point)
+            if a_point in visited:
+                areas[point].down = False
+                areas[a_point].up = False
 
             # left (0, -1)
             a_point = (row, col - 1)
-            if is_in_map(a_point, len(input_lines)):
-                if a_point not in visited:
-                    left_sides.add(point)
-                a_point = (row, col + 1)
-                if is_in_map(a_point, len(input_lines)):
-                    if a_point in visited:
-                        left_sides.discard(a_point)
-            else:
-                left_sides.add(point)
+            if a_point in visited:
+                areas[point].left = False
+                areas[a_point].right = False
+
+        up_sides = set()
+        down_sides = set()
+        left_sides = set()
+        right_sides = set()
+
+        for key, val in areas.items():
+            if val.up:
+                up_sides.add(key)
+            if val.down:
+                down_sides.add(key)
+            if val.right:
+                right_sides.add(key)
+            if val.left:
+                left_sides.add(key)
 
         result = 0
 
-        up_rows_indexes = set(row for row, _ in up_sides)
-        # up_cols_indexes = set(col for _, col in up_sides)
-        up_rows = [[col for row, col in up_sides if row == curr_row] for curr_row in up_rows_indexes]
-        # up_cols = [[row for row, col in up_sides if col == curr_col] for curr_col in up_cols_indexes]
-        for up_row in up_rows:
-            result += 1
-            for up_col1, up_col2 in zip(up_row, up_row[1:]):
-                if up_col2 - up_col1 == 1:
-                    result += 1
+        tmp = len(up_sides)
+        for p1, p2 in combinations(up_sides, 2):
+            r1, c1 = p1
+            r2, c2 = p2
+            if r1 == r2 and abs(c1 - c2) == 1:
+                tmp -= 1
 
-        down_rows_indexes = set(row for row, _ in down_sides)
-        # up_cols_indexes = set(col for _, col in up_sides)
-        down_rows = [[col for row, col in down_sides if row == curr_row] for curr_row in down_rows_indexes]
-        # up_cols = [[row for row, col in up_sides if col == curr_col] for curr_col in up_cols_indexes]
-        for up_row in down_rows:
-            result += 1
-            for up_col1, up_col2 in zip(up_row, up_row[1:]):
-                if up_col2 - up_col1 == 1:
-                    result += 1
+        result += tmp
 
+        tmp = len(down_sides)
+        for p1, p2 in combinations(down_sides, 2):
+            r1, c1 = p1
+            r2, c2 = p2
+            if r1 == r2 and abs(c1 - c2) == 1:
+                tmp -= 1
+
+        result += tmp
+
+        tmp = len(left_sides)
+        for p1, p2 in combinations(left_sides, 2):
+            r1, c1 = p1
+            r2, c2 = p2
+            if c1 == c2 and abs(r1 - r2) == 1:
+                tmp -= 1
+
+        result += tmp
+
+        tmp = len(right_sides)
+        for p1, p2 in combinations(right_sides, 2):
+            r1, c1 = p1
+            r2, c2 = p2
+            if c1 == c2 and abs(r1 - r2) == 1:
+                tmp -= 1
+
+        result += tmp
+
+        # up_rows_indexes = set(row for row, _ in up_sides)
+        # # up_cols_indexes = set(col for _, col in up_sides)
+        # up_rows = [[col for row, col in up_sides if row == curr_row] for curr_row in up_rows_indexes]
+        # # up_cols = [[row for row, col in up_sides if col == curr_col] for curr_col in up_cols_indexes]
+        # for up_row in up_rows:
+        #     result += 1
+        #     for up_col1, up_col2 in zip(up_row, up_row[1:]):
+        #         if up_col2 - up_col1 == 1:
+        #             result += 1
+        #
         # down_rows_indexes = set(row for row, _ in down_sides)
-        left_cols_indexes = set(col for _, col in left_sides)
+        # # up_cols_indexes = set(col for _, col in up_sides)
         # down_rows = [[col for row, col in down_sides if row == curr_row] for curr_row in down_rows_indexes]
-        left_cols = [[row for row, col in left_sides if col == curr_col] for curr_col in left_cols_indexes]
-        for up_row in left_cols:
-            result += 1
-            for up_col1, up_col2 in zip(up_row, up_row[1:]):
-                if up_col2 - up_col1 == 1:
-                    result += 1
-
-        # down_rows_indexes = set(row for row, _ in down_sides)
-        right_cols_indexes = set(col for _, col in right_sides)
-        # down_rows = [[col for row, col in down_sides if row == curr_row] for curr_row in down_rows_indexes]
-        right_cols = [[row for row, col in right_sides if col == curr_col] for curr_col in
-                     right_cols_indexes]
-        for up_row in right_cols:
-            result += 1
-            for up_col1, up_col2 in zip(up_row, up_row[1:]):
-                if up_col2 - up_col1 == 1:
-                    result += 1
+        # # up_cols = [[row for row, col in up_sides if col == curr_col] for curr_col in up_cols_indexes]
+        # for up_row in down_rows:
+        #     result += 1
+        #     for up_col1, up_col2 in zip(up_row, up_row[1:]):
+        #         if up_col2 - up_col1 == 1:
+        #             result += 1
+        #
+        # # down_rows_indexes = set(row for row, _ in down_sides)
+        # left_cols_indexes = set(col for _, col in left_sides)
+        # # down_rows = [[col for row, col in down_sides if row == curr_row] for curr_row in down_rows_indexes]
+        # left_cols = [[row for row, col in left_sides if col == curr_col] for curr_col in left_cols_indexes]
+        # for up_row in left_cols:
+        #     result += 1
+        #     for up_col1, up_col2 in zip(up_row, up_row[1:]):
+        #         if up_col2 - up_col1 == 1:
+        #             result += 1
+        #
+        # # down_rows_indexes = set(row for row, _ in down_sides)
+        # right_cols_indexes = set(col for _, col in right_sides)
+        # # down_rows = [[col for row, col in down_sides if row == curr_row] for curr_row in down_rows_indexes]
+        # right_cols = [[row for row, col in right_sides if col == curr_col] for curr_col in
+        #              right_cols_indexes]
+        # for up_row in right_cols:
+        #     result += 1
+        #     for up_col1, up_col2 in zip(up_row, up_row[1:]):
+        #         if up_col2 - up_col1 == 1:
+        #             result += 1
 
         return result
 
