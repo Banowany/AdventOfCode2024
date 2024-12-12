@@ -1,5 +1,5 @@
 import re
-from collections import deque, defaultdict
+from collections import deque
 from typing import List
 
 
@@ -18,19 +18,16 @@ def find_regions(mymap):
     def get_val_from_point(point):
         row, col = point
         return mymap[row][col]
-    def bfs(curr, acc):
-        q = deque([curr])
-        while q:
-            row, col = q.popleft()
-            curr = (row, col)
-            for change_r, change_c in [(-1,0), (0, 1), (1, 0), (0, -1)]:
-                point = (row+change_r, col+change_c)
-                if is_in_map(point):
-                    if point not in visited:
-                        if get_val_from_point(point) == get_val_from_point(curr):
-                            visited.add(point)
-                            acc.append(point)
-                            q.append(point)
+    def dfs(curr, acc):
+        row, col = curr
+        for change_r, change_c in [(-1,0), (0, 1), (1, 0), (0, -1)]:
+            point = (row+change_r, col+change_c)
+            if is_in_map(point):
+                if point not in visited:
+                    if get_val_from_point(point) == get_val_from_point(curr):
+                        visited.add(point)
+                        acc.append(point)
+                        dfs(point, acc)
 
     ranges = []
     for row in range(n):
@@ -39,157 +36,116 @@ def find_regions(mymap):
             if start not in visited:
                 candidate = [start]
                 visited.add(start)
-                bfs(start, candidate)
+                dfs(start, candidate)
                 ranges.append(candidate)
 
     return ranges
-
-
-
-
-
-class Area:
-    def __init__(self):
-        self.left_fance = True
-        self.right_fance = True
-        self.down_fance = True
-        self.up_fance = True
-
-    def is_left_fance(self):
-        return self.left_fance
-
-    def is_right_fance(self):
-        return self.right_fance
-
-    def is_down_fance(self):
-        return self.down_fance
-
-    def is_up_fance(self):
-        return self.up_fance
-
-    def __setitem__(self, key, value):
-        if key == (-1, 0):
-            self.up_fance = value
-        if key == (1, 0):
-            self.down_fance = value
-        if key == (0, 1):
-            self.right_fance = value
-        if key == (0, -1):
-            self.left_fance = value
-
-    def __getitem__(self, key):
-        if key == (-1, 0):
-            return self.up_fance
-        if key == (1, 0):
-            return self.down_fance
-        if key == (0, 1):
-            return self.right_fance
-        if key == (0, -1):
-            return self.left_fance
-
 
 def solution(input_lines : List[str]):
     regions = find_regions(input_lines)
 
     def count_sides(single_region):
         visited = set()
-        areas = defaultdict(Area)
-        for row, col in single_region:
-            curr_point = (row, col)
-            visited.add(curr_point)
-            for change_r, change_c in [(-1,0), (0, 1), (1, 0), (0, -1)]:
-                another_point = (row + change_r, col + change_c)
-                if is_in_map(another_point, len(input_lines)):
-                    if another_point in visited:
-                        areas[curr_point][(change_r, change_c)] = False
-                        areas[another_point][(-change_r, -change_c)] = False
+        up_sides = set()
+        down_sides = set()
+        left_sides = set()
+        right_sides = set()
+        for point in single_region:
+            visited.add(point)
+            row, col = point
+
+            #up (-1, 0)
+            a_point = (row -1, col)
+            if is_in_map(a_point, len(input_lines)):
+                if a_point not in visited:
+                    up_sides.add(point)
+                a_point = (row + 1, col)
+                if is_in_map(a_point, len(input_lines)):
+                    if a_point in visited:
+                        up_sides.discard(a_point)
+            else:
+                up_sides.add(point)
+
+            # right (0, 1)
+            a_point = (row, col + 1)
+            if is_in_map(a_point, len(input_lines)):
+                if a_point not in visited:
+                    right_sides.add(point)
+                a_point = (row, col - 1)
+                if is_in_map(a_point, len(input_lines)):
+                    if a_point in visited:
+                        right_sides.discard(a_point)
+            else:
+                right_sides.add(point)
+
+            # down (1, 0)
+            a_point = (row + 1, col)
+            if is_in_map(a_point, len(input_lines)):
+                if a_point not in visited:
+                    down_sides.add(point)
+                a_point = (row - 1, col)
+                if is_in_map(a_point, len(input_lines)):
+                    if a_point in visited:
+                        down_sides.discard(a_point)
+            else:
+                down_sides.add(point)
+
+            # left (0, -1)
+            a_point = (row, col - 1)
+            if is_in_map(a_point, len(input_lines)):
+                if a_point not in visited:
+                    left_sides.add(point)
+                a_point = (row, col + 1)
+                if is_in_map(a_point, len(input_lines)):
+                    if a_point in visited:
+                        left_sides.discard(a_point)
+            else:
+                left_sides.add(point)
 
         result = 0
 
-        visited = set()
-        for row, col in single_region:
-            point = (row, col)
-            visited.add(point)
-            num_of_fances = sum(1 for change in [(-1,0), (0, 1), (1, 0), (0, -1)] if areas[point][change] == True)
+        up_rows_indexes = set(row for row, _ in up_sides)
+        # up_cols_indexes = set(col for _, col in up_sides)
+        up_rows = [[col for row, col in up_sides if row == curr_row] for curr_row in up_rows_indexes]
+        # up_cols = [[row for row, col in up_sides if col == curr_col] for curr_col in up_cols_indexes]
+        for up_row in up_rows:
+            result += 1
+            for up_col1, up_col2 in zip(up_row, up_row[1:]):
+                if up_col2 - up_col1 == 1:
+                    result += 1
 
-            #Do add the up fence
-            left = (row, col - 1)
-            right = (row, col + 1)
-            is_deleted = False
-            if is_in_map(left, len(input_lines)):
-                if left in visited:
-                    if areas[left].up_fance and areas[point].up_fance and not is_deleted:
-                        num_of_fances -= 1
-                        is_deleted = True
+        down_rows_indexes = set(row for row, _ in down_sides)
+        # up_cols_indexes = set(col for _, col in up_sides)
+        down_rows = [[col for row, col in down_sides if row == curr_row] for curr_row in down_rows_indexes]
+        # up_cols = [[row for row, col in up_sides if col == curr_col] for curr_col in up_cols_indexes]
+        for up_row in down_rows:
+            result += 1
+            for up_col1, up_col2 in zip(up_row, up_row[1:]):
+                if up_col2 - up_col1 == 1:
+                    result += 1
 
-            if is_in_map(right, len(input_lines)):
-                if right in visited:
-                    if areas[right].up_fance and areas[point].up_fance and not is_deleted:
-                        num_of_fances -= 1
-                        is_deleted = True
+        # down_rows_indexes = set(row for row, _ in down_sides)
+        left_cols_indexes = set(col for _, col in left_sides)
+        # down_rows = [[col for row, col in down_sides if row == curr_row] for curr_row in down_rows_indexes]
+        left_cols = [[row for row, col in left_sides if col == curr_col] for curr_col in left_cols_indexes]
+        for up_row in left_cols:
+            result += 1
+            for up_col1, up_col2 in zip(up_row, up_row[1:]):
+                if up_col2 - up_col1 == 1:
+                    result += 1
 
-            # Do add the down fence
-            left = (row, col - 1)
-            right = (row, col + 1)
-            is_deleted = False
-            if is_in_map(left, len(input_lines)):
-                if left in visited:
-                    if areas[left].down_fance and areas[point].down_fance and not is_deleted:
-                        num_of_fances -= 1
-                        is_deleted = True
-
-            if is_in_map(right, len(input_lines)):
-                if right in visited:
-                    if areas[right].down_fance and areas[point].down_fance and not is_deleted:
-                        num_of_fances -= 1
-                        is_deleted = True
-
-            # Do add the left fence
-            up = (row - 1, col)
-            down = (row + 1, col)
-            is_deleted = False
-            if is_in_map(up, len(input_lines)):
-                if up in visited:
-                    if areas[up].left_fance and areas[point].left_fance and not is_deleted:
-                        num_of_fances -= 1
-                        is_deleted = True
-
-            if is_in_map(down, len(input_lines)):
-                if down in visited:
-                    if areas[down].left_fance and areas[point].left_fance and not is_deleted:
-                        num_of_fances -= 1
-                        is_deleted = True
-
-            # Do add the right fence
-            up = (row - 1, col)
-            down = (row + 1, col)
-            is_deleted = False
-            if is_in_map(up, len(input_lines)):
-                if up in visited:
-                    if areas[up].right_fance and areas[point].right_fance and not is_deleted:
-                        num_of_fances -= 1
-                        is_deleted = True
-
-            if is_in_map(down, len(input_lines)):
-                if down in visited:
-                    if areas[down].right_fance and areas[point].right_fance and not is_deleted:
-                        num_of_fances -= 1
-                        is_deleted = True
-
-            result += num_of_fances
+        # down_rows_indexes = set(row for row, _ in down_sides)
+        right_cols_indexes = set(col for _, col in right_sides)
+        # down_rows = [[col for row, col in down_sides if row == curr_row] for curr_row in down_rows_indexes]
+        right_cols = [[row for row, col in right_sides if col == curr_col] for curr_col in
+                     right_cols_indexes]
+        for up_row in right_cols:
+            result += 1
+            for up_col1, up_col2 in zip(up_row, up_row[1:]):
+                if up_col2 - up_col1 == 1:
+                    result += 1
 
         return result
-            # for change_r, change_c in [(-1,0), (0, 1), (1, 0), (0, -1)]:
-            #     another_point = (row + change_r, col + change_c)
-            #     if is_in_map(another_point, len(input_lines)):
-            #         if another_point in visited:
-            #             if (change_r, change_c) == (-1,0) or (change_r, change_c) == (1,0):
-            #
-            #             else:
-            #                 pass
-
-
-
 
     result = 0
     for single_region in regions:
